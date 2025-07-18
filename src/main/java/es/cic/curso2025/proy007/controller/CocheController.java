@@ -17,7 +17,7 @@ import es.cic.curso2025.proy007.model.Coche;
 import es.cic.curso2025.proy007.service.CocheService;
 
 @RestController
-@RequestMapping("/api/coches")
+@RequestMapping("/coches")
 public class CocheController {
 
     @Autowired
