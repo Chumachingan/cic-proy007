@@ -2,39 +2,80 @@ package es.cic.curso2025.proy007.service;
 
 import java.util.List;
 import java.util.Optional;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;  
 import es.cic.curso2025.proy007.model.Coche;
 import es.cic.curso2025.proy007.repository.CocheRepository;
 
+/**
+ * Servicio de dominio encargado de gestionar las operaciones CRUD de Coche
+ * Expone la lógica de negocio relacionada con coches y
+ * delega la persistencia a CocheRepository.
+ * Por el momento no utilizamos @Transactional debido a la simplicidad de nuestro CRUD.
+ */
 @Service
 public class CocheService {
-    @Autowired
-    private CocheRepository cocheRepository;
 
+    /**
+     * Utilizamos LOGGER para registrar la actividad interna de CocheService.
+     * con distintos niveles de detalle según el entorno de ejecución.
+     */
+    private static final Logger LOGGER = LoggerFactory.getLogger(CocheService.class);
 
-    public long create(Coche coche) {
-        // Los días festivos y los fines de semana en esta empresa no se crean motores
-        cocheRepository.save(coche);
+    private final CocheRepository cocheRepository;
 
-        return coche.getId();
+    /**
+     * Constructor injection (un único constructor ⇒ @Autowired opcional)
+     * Spring lo asume implícitamente.
+     */
+    public CocheService(CocheRepository cocheRepository) {
+        this.cocheRepository = cocheRepository;
     }
 
-    public Coche get(long id) {
-        Optional<Coche> resultado = cocheRepository.findById(id);
-        return resultado.orElse(null);
+    /**
+     * MÉTODOS CRUD (CREAR, LEER, ACTUALIZAR, ELIMINAR)
+     * 
+     * Recuperamos un coche por su identificador => SELECT * FROM coches WHERE id = ?
+     */
+    public Optional<Coche> get(long id) {
+        
+        // Utilizamos un placeholder {} ya que con + se evalúa siempre la concatenación.
+        LOGGER.info("Buscando coche con id: {}", id);
+        Optional<Coche> coche = cocheRepository.findById(id);
+        return coche;
     }
-
+    
+    /**
+     * Devuelve la lista de coches. Puede estar vacía.
+     * SELECT * FROM coches
+     */
     public List<Coche> get() {
         return cocheRepository.findAll();
     }
 
+    /**
+     * Crea (o actualiza, si ya existe id) un coche en la base de datos.
+     * JPA decidirá INSERT/UPDATE según el valor del id.
+     */
+    public long create(Coche coche) {
+        cocheRepository.save(coche);
+        return coche.getId();
+    }
+
+    /**
+     * Actualiza un coche existente.
+     * Equivalente a llamar a save() con un id no nulo.
+     * UPDATE coches SET ... WHERE id = ?
+     */
     public void update(Coche coche) {
         cocheRepository.save(coche);
     }
 
+    /**
+     * Elimina un coche por su identificador.
+     * DELETE FROM coches WHERE id = ?
+     */
     public void delete(long id) {
         cocheRepository.deleteById(id);
     }
