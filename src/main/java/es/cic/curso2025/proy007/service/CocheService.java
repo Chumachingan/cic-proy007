@@ -39,7 +39,6 @@ public class CocheService {
      * Recuperamos un coche por su identificador => SELECT * FROM coches WHERE id = ?
      */
     public Optional<Coche> get(long id) {
-        
         // Utilizamos un placeholder {} ya que con + se evalúa siempre la concatenación.
         LOGGER.info("Buscando coche con id: {}", id);
         Optional<Coche> coche = cocheRepository.findById(id);
@@ -58,9 +57,9 @@ public class CocheService {
      * Crea (o actualiza, si ya existe id) un coche en la base de datos.
      * JPA decidirá INSERT/UPDATE según el valor del id.
      */
-    public long create(Coche coche) {
+    public Coche create(Coche coche) {
         cocheRepository.save(coche);
-        return coche.getId();
+        return coche;
     }
 
     /**
