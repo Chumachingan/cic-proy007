@@ -3,7 +3,6 @@ package es.cic.curso2025.proy007.service;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.List;
-import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -12,13 +11,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
+import es.cic.curso2025.proy007.exception.CocheException;
 import es.cic.curso2025.proy007.model.Coche;
 import es.cic.curso2025.proy007.repository.CocheRepository;
 
 /**
- * Tests de integración para CocheService
- * Verifica la correcta interacción entre el servicio y la capa de persistencia
- * Utiliza una base de datos H2 en memoria
+ * Pruebas de integración para CocheService.
+ * Verifica la correcta interacción entre el servicio y la base de datos.
+ * Usa una base de datos H2 en memoria y transacciones que se revierten después de cada test.
  */
 @SpringBootTest
 @Transactional
@@ -31,7 +31,7 @@ class CocheServiceIntegrationTest {
     private CocheRepository cocheRepository;
 
     /**
-     * Limpia la base de datos antes de cada test para asegurar el aislamiento
+     * Limpia la base de datos antes de cada prueba para asegurar un estado inicial conocido.
      */
     @BeforeEach
     void setUp() {
@@ -39,141 +39,149 @@ class CocheServiceIntegrationTest {
     }
 
     /**
-     * Test de creación de coche
-     * Verifica:
-     * 1. La generación correcta del ID
-     * 2. La persistencia en base de datos
-     * 3. La coincidencia de datos guardados
+     * Verifica la creación de un coche nuevo:
+     * 1. Asigna un ID automáticamente
+     * 2. Persiste correctamente en base de datos
+     * 3. Retorna el objeto completo
      */
     @Test
-    @DisplayName("Debería crear un nuevo coche")
-    void testCreate() {
-        // Preparamos los datos
+    @DisplayName("create() debe persistir un nuevo coche y retornarlo con ID")
+    void shouldCreateCoche() {
+        // Preparación
         Coche coche = new Coche();
-        coche.setMarca("Toyota");
-        coche.setPotencia(100);
+        coche.setMarca("Tesla");
+        coche.setPotencia(500);
         coche.setEncendido(false);
         coche.setVersion(1L);
 
-        // Ejecutamos la operación
-        Coche created = cocheService.create(coche);
+        // Ejecución
+        Coche resultado = cocheService.create(coche);
 
-        // Verificamos resultados
-        assertNotNull(created.getId(), "El ID no debería ser nulo");
-        Optional<Coche> found = cocheRepository.findById(created.getId());
-        assertTrue(found.isPresent(), "El coche debería existir en la base de datos");
-        assertEquals("Toyota", found.get().getMarca(), "La marca debería coincidir");
+        // Verificación
+        assertNotNull(resultado.getId(), "El ID no debería ser null");
+        assertTrue(resultado.getId() > 0, "El ID debería ser positivo");
+        
+        // Verificar que está en la base de datos
+        assertTrue(cocheRepository.findById(resultado.getId()).isPresent(), 
+            "El coche debería existir en la base de datos");
     }
 
     /**
-     * Test de búsqueda por ID
-     * Verifica:
-     * 1. La correcta recuperación de un coche existente
-     * 2. La integridad de los datos recuperados
+     * Verifica que se puede recuperar un coche existente por su ID
+     * y que todos sus atributos coinciden con los almacenados.
      */
     @Test
-    @DisplayName("Debería obtener un coche por ID")
-    void testGet() {
-        // GIVEN
+    @DisplayName("get() debe retornar el coche si existe")
+    void shouldGetExistingCoche() {
+        // Preparación
         Coche coche = new Coche();
-        coche.setMarca("Honda");
-        coche.setPotencia(120);
+        coche.setMarca("Ford");
+        coche.setPotencia(150);
         coche.setEncendido(true);
         coche.setVersion(1L);
         coche = cocheRepository.save(coche);
 
-        // WHEN
-        Optional<Coche> found = cocheService.get(coche.getId());
+        // Ejecución
+        Coche resultado = cocheService.get(coche.getId());
 
-        // THEN
-        assertTrue(found.isPresent(), "El coche debería existir");
-        assertEquals("Honda", found.get().getMarca(), "La marca debería coincidir");
+        // Verificación
+        assertNotNull(resultado, "El coche no debería ser null");
+        assertEquals("Ford", resultado.getMarca(), "La marca debería coincidir");
+        assertEquals(150, resultado.getPotencia(), "La potencia debería coincidir");
+        assertTrue(resultado.isEncendido(), "El estado debería coincidir");
     }
 
     /**
-     * Test de listado completo
-     * Verifica:
-     * 1. La recuperación de múltiples coches
-     * 2. El número correcto de elementos
-     * Este test es importante para verificar operaciones bulk
+     * Verifica que se lanza la excepción apropiada cuando
+     * se intenta recuperar un coche que no existe.
      */
     @Test
-    @DisplayName("Debería obtener lista de todos los coches")
-    void testGetAll() {
-        // GIVEN
+    @DisplayName("get() debe lanzar excepción si el coche no existe")
+    void shouldThrowExceptionWhenCocheNotFound() {
+        // Verificación
+        assertThrows(CocheException.class, () -> {
+            cocheService.get(999L);
+        }, "Debería lanzar CocheException cuando el ID no existe");
+    }
+
+    /**
+     * Verifica que se pueden recuperar todos los coches
+     * y que la lista contiene el número correcto de elementos.
+     */
+    @Test
+    @DisplayName("get() sin argumentos debe retornar todos los coches")
+    void shouldGetAllCoches() {
+        // Preparación
         Coche coche1 = new Coche();
         coche1.setMarca("BMW");
-        coche1.setPotencia(150);
+        coche1.setPotencia(200);
         coche1.setEncendido(false);
         coche1.setVersion(1L);
         cocheRepository.save(coche1);
 
         Coche coche2 = new Coche();
-        coche2.setMarca("Audi");
-        coche2.setPotencia(180);
+        coche2.setMarca("Mercedes");
+        coche2.setPotencia(250);
         coche2.setEncendido(true);
         coche2.setVersion(1L);
         cocheRepository.save(coche2);
 
-        // WHEN
-        List<Coche> coches = cocheService.get();
+        // Ejecución
+        List<Coche> resultado = cocheService.get();
 
-        // THEN
-        assertEquals(2, coches.size(), "Deberían haber 2 coches");
+        // Verificación
+        assertEquals(2, resultado.size(), "Deberían haber 2 coches");
     }
 
     /**
-     * Test de actualización
-     * Verifica:
-     * 1. La persistencia de cambios en un objeto existente
-     * 2. La correcta actualización de campos específicos
-     * 3. La permanencia de la actualización en base de datos
+     * Verifica que se puede eliminar un coche existente
+     * y que realmente desaparece de la base de datos.
      */
     @Test
-    @DisplayName("Debería actualizar un coche existente")
-    void testUpdate() {
-        // GIVEN
+    @DisplayName("delete() debe eliminar el coche existente")
+    void shouldDeleteCoche() {
+        // Preparación
         Coche coche = new Coche();
-        coche.setMarca("Seat");
-        coche.setPotencia(90);
+        coche.setMarca("Opel");
+        coche.setPotencia(100);
         coche.setEncendido(false);
-        coche.setVersion(1L);
-        coche = cocheRepository.save(coche);
-
-        // WHEN
-        coche.setMarca("Volkswagen");
-        cocheService.update(coche);
-
-        // THEN
-        Optional<Coche> updated = cocheRepository.findById(coche.getId());
-        assertTrue(updated.isPresent(), "El coche debería existir");
-        assertEquals("Volkswagen", updated.get().getMarca(), "La marca debería estar actualizada");
-    }
-
-    /**
-     * Test de eliminación
-     * Verifica:
-     * 1. La correcta eliminación de un registro
-     * 2. La no existencia del registro tras el borrado
-     * Este test es crítico para evitar registros huérfanos
-     */
-    @Test
-    @DisplayName("Debería eliminar un coche")
-    void testDelete() {
-        // GIVEN
-        Coche coche = new Coche();
-        coche.setMarca("Fiat");
-        coche.setPotencia(75);
-        coche.setEncendido(true);
         coche.setVersion(1L);
         coche = cocheRepository.save(coche);
         Long id = coche.getId();
 
-        // WHEN
+        // Ejecución
         cocheService.delete(id);
 
-        // THEN
-        Optional<Coche> deleted = cocheRepository.findById(id);
-        assertFalse(deleted.isPresent(), "El coche no debería existir después de eliminarlo");
+        // Verificación
+        assertFalse(cocheRepository.findById(id).isPresent(), 
+            "El coche no debería existir después de eliminarlo");
+    }
+
+    /**
+     * Verifica que se puede actualizar un coche existente
+     * y que los cambios se reflejan en la base de datos.
+     */
+    @Test
+    @DisplayName("update() debe modificar un coche existente")
+    void shouldUpdateCoche() {
+        // Preparación
+        Coche coche = new Coche();
+        coche.setMarca("Seat");
+        coche.setPotencia(120);
+        coche.setEncendido(false);
+        coche.setVersion(1L);
+        coche = cocheRepository.save(coche);
+
+        // Modificamos el coche
+        coche.setMarca("Volkswagen");
+        coche.setPotencia(150);
+
+        // Ejecución
+        cocheService.update(coche);
+
+        // Verificación
+        Coche actualizado = cocheRepository.findById(coche.getId()).orElseThrow();
+        assertEquals("Volkswagen", actualizado.getMarca(), "La marca debería estar actualizada");
+        assertEquals(150, actualizado.getPotencia(), "La potencia debería estar actualizada");
     }
 }
