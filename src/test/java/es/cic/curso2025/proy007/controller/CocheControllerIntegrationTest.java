@@ -1,6 +1,6 @@
 package es.cic.curso2025.proy007.controller;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -33,11 +33,14 @@ import es.cic.curso2025.proy007.repository.CocheRepository;
 @Transactional
 class CocheControllerIntegrationTest {
 
-    @Autowired MockMvc mockMvc;
-    @Autowired ObjectMapper objectMapper;
-    @Autowired CocheRepository cocheRepository;
+    @Autowired
+    MockMvc mockMvc;
+    @Autowired
+    ObjectMapper objectMapper;
+    @Autowired
+    CocheRepository cocheRepository;
 
-    // Garantiza un estado limpio antes de cada método. 
+    // Garantiza un estado limpio antes de cada método.
     @BeforeEach
     void clearDb() {
         cocheRepository.deleteAll();
@@ -51,30 +54,47 @@ class CocheControllerIntegrationTest {
     @DisplayName("POST /coches guarda el coche y devuelve JSON con id")
     void shouldCreateCoche() throws Exception {
 
+        /**
+         * PREPARACIÓN
+         * Creamos el objeto y no asignamos id, ya que lo hace JPA
+         */
         Coche coche = new Coche();
         coche.setMarca("Audi");
         coche.setPotencia(90);
         coche.setEncendido(false);
-        coche.setVersion(1L);                // El campo 'id' lo genera JPA
+        coche.setVersion(1L);
 
+        // Serializamos a JSON
         String json = objectMapper.writeValueAsString(coche);
 
+        /**
+         * EJECUCIÓN
+         * Llamamos al endpoint real
+         */
         MvcResult res = mockMvc.perform(post("/coches")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(json))
-                                .andExpect(status().isOk())     
-                                .andReturn();
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json))
+                .andExpect(status().isOk())
+                .andReturn();
 
-        // Convertimos la respuesta a objeto
+        /**
+         * COMPROBACIÓN
+         * Des-serializamos la respuesta convirtiéndola a objeto
+         */
         Coche body = objectMapper.readValue(
-                        res.getResponse().getContentAsString(),
-                        Coche.class);
+                res.getResponse().getContentAsString(),
+                Coche.class);
 
-        assertThat(body.getId()).isPositive();
+        // Confirmamos que que el id > 0
+        assertTrue(body.getId() > 0, "El id debe ser positivo");
 
-        // Verificamos que realmente se persistió
+        /**
+         * Verificamos que realmente se persistió, es decir
+         * consultamos la base de datos despues de la operación
+         * y aseguramos que el registro está allí realmente
+         */
         Optional<Coche> enBd = cocheRepository.findById(body.getId());
-        assertThat(enBd).isPresent();
+        assertTrue(enBd.isPresent(), "El coche no se encontró en la base de datos");
     }
 
     /**
@@ -84,25 +104,25 @@ class CocheControllerIntegrationTest {
     @DisplayName("GET /coches/{id} devuelve objeto cuando existe y 'null' cuando no")
     void shouldReturnCocheOrNull() throws Exception {
 
-        // ─ 1) Persistimos un coche
-        Coche c = new Coche();
-        c.setMarca("BMW");
-        c.setPotencia(120);
-        c.setEncendido(true);
-        c.setVersion(1L);
+        // Creamos un objeto coche que almacenaremos en la base de datos
+        Coche coche = new Coche();
+        coche.setMarca("BMW");
+        coche.setPotencia(120);
+        coche.setEncendido(true);
+        coche.setVersion(1L);
 
-        c = cocheRepository.save(c);
+        coche = cocheRepository.save(coche);
 
-        // ─ 2) Caso: existe
-        mockMvc.perform(get("/coches/{id}", c.getId()))
-               .andExpect(status().isOk())
-               .andExpect(jsonPath("$.id").value(c.getId()))
-               .andExpect(jsonPath("$.marca").value("BMW"));
+        // Caso 1: el coche existe
+        mockMvc.perform(get("/coches/{id}", coche.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(coche.getId()))
+                .andExpect(jsonPath("$.marca").value("BMW"));
 
-        // ─ 3) Caso: no existe
-        mockMvc.perform(get("/coches/{id}", c.getId() + 999))
-               .andExpect(status().isOk())          // 200 + cuerpo 'null'
-               .andExpect(content().string("null"));
+        // Caso 2: el coche NO existe
+        mockMvc.perform(get("/coches/{id}", coche.getId() + 999))
+                .andExpect(status().isOk()) // 200 + cuerpo 'null'
+                .andExpect(content().string("null"));
     }
 
     /**
@@ -112,17 +132,21 @@ class CocheControllerIntegrationTest {
     @DisplayName("DELETE /coches/{id} elimina el registro")
     void shouldDeleteCoche() throws Exception {
 
-        Coche c = new Coche();
-        c.setMarca("Seat");
-        c.setPotencia(75);
-        c.setEncendido(false);
-        c.setVersion(1L);
+        // Creamos un objeto coche que almacenaremos en la base de datos
+        Coche coche = new Coche();
+        coche.setMarca("Seat");
+        coche.setPotencia(75);
+        coche.setEncendido(false);
+        coche.setVersion(1L);
 
-        c = cocheRepository.save(c);
+        coche = cocheRepository.save(coche);
 
-        mockMvc.perform(delete("/coches/{id}", c.getId()))
-               .andExpect(status().isOk());
+        // Ejecutamos la petición DELETE
+        mockMvc.perform(delete("/coches/{id}", coche.getId()))
+                .andExpect(status().isOk());
 
-        assertThat(cocheRepository.findById(c.getId())).isNotPresent();
+        // Confirmamos que ya no existe en la base de datos
+        Optional<Coche> enBd = cocheRepository.findById(coche.getId());
+        assertTrue(enBd.isEmpty(), "El coche debería haber sido eliminado");
     }
 }
