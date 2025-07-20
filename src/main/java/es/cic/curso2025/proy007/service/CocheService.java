@@ -61,8 +61,7 @@ public class CocheService {
      * JPA decidirá INSERT/UPDATE según el valor del id.
      */
     public Coche create(Coche coche) {
-        cocheRepository.save(coche);
-        return coche;
+        return cocheRepository.save(coche);
     }
 
     /**

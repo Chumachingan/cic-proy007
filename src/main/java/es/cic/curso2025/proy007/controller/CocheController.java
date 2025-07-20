@@ -68,8 +68,7 @@ public class CocheController {
      */
     @PostMapping
     public Coche create(@RequestBody Coche coche) {
-        cocheService.create(coche);          // El ID se asigna en service
-        return coche;                       // El objeto ya contiene getId()
+        return cocheService.create(coche);          // El ID se asigna en service
     }
 
     /**
