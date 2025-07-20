@@ -1,13 +1,13 @@
 package es.cic.curso2025.proy007.service;
 
 import java.util.List;
-import java.util.Optional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.springframework.stereotype.Service;  
+import org.springframework.stereotype.Service;
 
+import es.cic.curso2025.proy007.exception.CocheException;
 import es.cic.curso2025.proy007.model.Coche;
 import es.cic.curso2025.proy007.repository.CocheRepository;
 
@@ -41,11 +41,11 @@ public class CocheService {
      * 
      * Recuperamos un coche por su identificador => SELECT * FROM coches WHERE id = ?
      */
-    public Optional<Coche> get(long id) {
+    public Coche get(long id) {
         // Utilizamos un placeholder {} ya que con + se evalúa siempre la concatenación.
         LOGGER.info("Buscando coche con id: {}", id);
-        Optional<Coche> coche = cocheRepository.findById(id);
-        return coche;
+        return cocheRepository.findById(id)
+                .orElseThrow(() -> new CocheException(id));
     }
     
     /**

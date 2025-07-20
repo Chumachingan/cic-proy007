@@ -1,10 +1,12 @@
 package es.cic.curso2025.proy007.controller;
 
 import java.util.List;
-import java.util.Optional;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import es.cic.curso2025.proy007.exception.CocheException;
 import es.cic.curso2025.proy007.model.Coche;
 import es.cic.curso2025.proy007.service.CocheService;
 
@@ -46,8 +48,14 @@ public class CocheController {
      * Optional.empty() como `null`, devolviendo 200 OK. 
      */
     @GetMapping("/{id}")
-    public Optional<Coche> get(@PathVariable long id) {
-        return cocheService.get(id);
+    public ResponseEntity<?> get(@PathVariable long id) {
+        try {
+            Coche coche = cocheService.get(id);
+            return ResponseEntity.ok(coche);
+        } catch (CocheException ex) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                                 .body(ex.getMessage());
+        }
     }
 
     /**

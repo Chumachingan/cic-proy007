@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import es.cic.curso2025.proy007.exception.CocheException;
 import es.cic.curso2025.proy007.model.Coche;
 import es.cic.curso2025.proy007.repository.CocheRepository;
 
@@ -102,7 +103,7 @@ class CocheControllerIntegrationTest {
      */
     @Test
     @DisplayName("GET /coches/{id} devuelve objeto cuando existe y 'null' cuando no")
-    void shouldReturnCocheOrNull() throws Exception {
+    void shouldReturnCocheOrServerError() throws Exception {
 
         // Creamos un objeto coche que almacenaremos en la base de datos
         Coche coche = new Coche();
@@ -113,16 +114,19 @@ class CocheControllerIntegrationTest {
 
         coche = cocheRepository.save(coche);
 
-        // Caso 1: el coche existe
+        // Caso 1: el coche existe (200OK)
         mockMvc.perform(get("/coches/{id}", coche.getId()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(coche.getId()))
                 .andExpect(jsonPath("$.marca").value("BMW"));
 
-        // Caso 2: el coche NO existe
-        mockMvc.perform(get("/coches/{id}", coche.getId() + 999))
-                .andExpect(status().isOk()) // 200 + cuerpo 'null'
-                .andExpect(content().string("null"));
+        // Caso 2: el coche NO existe (404)
+        long idInexistente = coche.getId() + 999;
+        String mensaje = "Coche con id " + idInexistente + " no encontrado.";
+
+        mockMvc.perform(get("/coches/{id}", idInexistente))
+                .andExpect(status().isNotFound())
+                .andExpect(content().string(mensaje));
     }
 
     /**
