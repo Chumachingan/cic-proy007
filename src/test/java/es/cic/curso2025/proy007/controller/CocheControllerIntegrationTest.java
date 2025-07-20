@@ -19,7 +19,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import es.cic.curso2025.proy007.exception.CocheException;
 import es.cic.curso2025.proy007.model.Coche;
 import es.cic.curso2025.proy007.repository.CocheRepository;
 
